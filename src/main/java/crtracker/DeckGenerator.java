@@ -10,7 +10,7 @@
  *  Deck 292f4f count: 1297.0 winrate: 63% nbplayers : 101 strengthW: 0.009784587378640778, Deck 2f484f count: 1105.0 winrate: 63% nbplayers : 101 strengthW: 0.00641025641025641, Deck 3d5a6d count: 1449.0 winrate: 63% nbplayers : 101 strengthW: 0.1800789760348584, Deck 08646b count: 1394.0 winrate: 63% nbplayers : 101 strengthW: 0.25736126840317103, Deck 0c2940 count: 1633.0 winrate: 63% nbplayers : 101 strengthW: 0.30680164888457806, Deck 022f6d count: 1147.0 winrate: 63% nbplayers : 101 strengthW: 0.271667817679558, Deck 08355e count: 1865.0 winrate: 63% nbplayers : 101 strengthW: 0.21659940526762958, Deck 122f6d count: 1075.0 winrate: 62% nbplayers : 101 strengthW: 0.19534711964549484, Deck 071637 count: 1589.0 winrate: 62% nbplayers : 101 strengthW: 0.2124248496993988, Deck 406265 count: 2575.0 winrate: 62% nbplayers : 101 strengthW: 0.3887600494743352, Deck 0b0c37 count: 7277.0 winrate: 62% nbplayers : 101 strengthW: 0.3228983998246383, Deck 0c3750 count: 2637.0 winrate: 62% nbplayers : 101 strengthW: 0.2405852994555354, Deck 0c2a2b count: 2301.0 winrate: 62% nbplayers : 101 strengthW: 0.17747395833333332, Deck 2a2b37 count: 1948.0 winrate: 62% nbplayers : 101 strengthW: 0.09336483155299918, Deck 071137 count: 4246.0 winrate: 62% nbplayers : 101 strengthW: 0.2523331447963801]
  */
 
- package src.main.java.crtracker;
+ package crtracker;
 
  import java.io.BufferedWriter;
  import java.io.FileOutputStream;
@@ -36,7 +36,7 @@
          return num * factorial(num - 1);
      }
  
-     // Calcul de C(n, k)
+     // Calcul de C(n, k)= n! / (k! * (n - k)!).
      public static int combinations(int n, int k) {
          int numerator = factorial(n);
          int denominator = factorial(k) * factorial(n - k);
@@ -45,6 +45,7 @@
          return result;
      }
  
+     /*Cette méthode génère toutes les combinaisons possibles de k éléments parmi un ensemble de n éléments (ici, les cartes dans un deck). Elle appelle la méthode generate, qui fait le travail récursivement. */
      public static ArrayList<ArrayList<Integer>> generateCombinations(int n, int k) {
          ArrayList<Integer> elements = new ArrayList<Integer>();
          for (int x = 0; x < n; ++x)
@@ -57,6 +58,9 @@
  
      private static void generate(ArrayList<Integer> current, int start, ArrayList<Integer> elements, int k,
              ArrayList<ArrayList<Integer>> result) {
+        /*générer toutes les combinaisons possibles 
+        en ajoutant des éléments un à un à la combinaison actuelle, 
+        puis en procédant récursivement. */
          if (current.size() == k) {
              result.add(new ArrayList<>(current));
              return;
@@ -86,15 +90,26 @@
          ArrayList<ArrayList<ArrayList<Integer>>> combs = new ArrayList<ArrayList<ArrayList<Integer>>>();
  
          for (int k : CARDSGRAMS) {
+            //génère les combinaisons de cartes pour chaque taille spécifiée dans CARDSGRAMS. 
+            // appelle generateCombinations pour générer des sous-ensembles de cartes.
              combs.add(generateCombinations(8, k));
          }
  
+         //Configuration Spark
          SparkConf conf = new SparkConf().setAppName("Deck Generator");
          JavaSparkContext sc = new JavaSparkContext(conf);
  
+         //récupère les batailles distinctes à partir des données de jeux:
          JavaRDD<Battle> clean = CRTools.getDistinctRawBattles(sc, CRTools.WEEKS);
- 
+         //DeckGenerator utilise CRTools pour obtenir les données de batailles nettoyées avant de procéder à l'analyse des decks. 
+         
          JavaPairRDD<String, Deck> rdddecks = clean.flatMapToPair((x) -> {
+            /*Filtrage Supplémentaire :
+            Vérifie que les decks des deux joueurs ont une longueur de 16 caractères.
+            Assure que la différence de force entre les joueurs n'excède pas 0,75.
+            Vérifie que les valeurs touch des deux joueurs sont égales à 1.
+            Vérifie que le meilleur rang de ligue des deux joueurs est au moins 6.
+            Si l'une de ces conditions n'est pas remplie, la bataille est ignorée (aucune paire clé-valeur n'est générée). */
              if (x.players.get(0).deck.length() != 16 || x.players.get(1).deck.length() != 16
                      || (Math.abs(x.players.get(0).strength - x.players.get(1).strength)) > 0.75
                      || x.players.get(0).touch != 1 || x.players.get(1).touch != 1
@@ -104,6 +119,7 @@
              if ((x.players.get(0).bestleague < 6 || x.players.get(1).bestleague < 6))
                  return new ArrayList<Tuple2<String, Deck>>().iterator();
  
+            /* Découpage des Decks :Chaque deck est divisé en 8 sous-chaînes de 2 caractères chacune, représentant probablement des cartes individuelles.*/
              ArrayList<String> tmp1 = new ArrayList<>();
              for (int i = 0; i < 8; ++i)
                  tmp1.add(x.players.get(0).deck.substring(i * 2, i * 2 + 2));
@@ -112,30 +128,47 @@
                  tmp2.add(x.players.get(1).deck.substring(i * 2, i * 2 + 2));
              ArrayList<Tuple2<String, Deck>> res = new ArrayList<>();
              for (ArrayList<ArrayList<Integer>> aa : combs)
+             /*Génération des Combinaisons de Cartes :Pour chaque combinaison de cartes générée précédemment (combs), 
+             la méthode treatCombination est appelée pour créer des 
+             objets Deck correspondant aux sous-ensembles de cartes sélectionnées.*/
                  for (ArrayList<Integer> cmb : aa)
                      treatCombination(x, tmp1, tmp2, res, cmb);
              return res.iterator();
-         }).cache();
+         }).cache();//Le RDD résultant (rdddecks) est mis en cache pour optimiser les performances lors des opérations suivantes.
  
          //System.out.println("rdd decks generated : " + rdddecks.count());
  
+         //procède à l'agrégation et au filtrage des statistiques :
          final int PLAYERS = 10;
          final int BATTLES = 80;
  
+         //reduceByKey agrège les objets Deck ayant la même clé (identifiant du deck) en les fusionnant via la méthode merge.
          JavaRDD<Deck> stats = rdddecks.reduceByKey((x, y) -> x.merge(y)).values()
                  .filter((Deck x) -> {
                      if (x.id.length() == 16)
                          return x.players.size() >= PLAYERS && x.count >= BATTLES;
                      else
                          return x.players.size() >= PLAYERS && x.count >= BATTLES;
-                 });
+                 });//Seuls les decks ayant été utilisés par au moins PLAYERS (10) joueurs et ayant participé à au moins BATTLES (80) batailles sont conservés.
  
+
          //System.out.println("rdd decks reduced : " + stats.count());
  
+         /*Cette partie regroupe les decks en fonction du nombre de cartes qu'ils contiennent (déterminé par CARDSGRAMS).
+            CARDSGRAMS est un tableau contenant les tailles des combinaisons de cartes (par exemple, 4, 6, 7, 8).
+            Chaque élément de stats est filtré pour ne garder que les decks ayant cn cartes, où la taille des cartes est déterminée par x.id.length() / 2.
+            Ces statistiques sont stockées dans la liste statistics. */
          ArrayList<JavaRDD<Deck>> statistics = new ArrayList<JavaRDD<Deck>>();
          for (int cn : CARDSGRAMS) {
              statistics.add(stats.filter((Deck x) -> x.id.length() / 2 == cn));
-         }
+             /*Chaque deck possède un ID représentant les cartes qu'il contient.
+                La taille du deck est mesurée par la moitié de la longueur de son ID (x.id.length() / 2), car chaque carte est codée sur deux caractères.
+                Les decks sont filtrés par taille (4, 6, 7, ou 8 cartes selon CARDSGRAMS), et chaque groupe est ajouté à une liste statistics. */
+            }
+
+         /*Comparer deux decks en fonction de leur taux de victoire (winrate).
+            Si un deck n'a aucun match enregistré (count == 0), il est considéré comme ayant un score inférieur.
+            Les decks ayant un winrate plus élevé sont classés avant ceux ayant un score plus bas. */
          class WinrateComparator implements Comparator<Deck>, Serializable {
              @Override
              public int compare(Deck x, Deck y) {
@@ -145,6 +178,8 @@
                      return -1;
                  if (x.count == 0 && y.count == 0)
                      return 0;
+                /*Si les deux decks ont des données valides, leur winrate est calculé comme le ratio des victoires sur les parties totales (x.win / x.count).
+                Les decks sont triés du meilleur au moins bon taux de victoire. */
                  if ((double) x.win / x.count > (double) y.win / y.count)
                      return 1;
                  else if ((double) x.win / x.count < (double) y.win / y.count)
@@ -160,7 +195,7 @@
          try {
              writer = new BufferedWriter(new OutputStreamWriter(
                      new FileOutputStream("best_deck.json"), "utf-8"));
-             writer.write("{\n");
+             writer.write("{\n");//Sauvegarder les meilleurs decks pour chaque taille de combinaison (CARDSGRAMS) dans le fichier JSON best_deck.json.
  
              boolean firsta = true;
  
@@ -168,6 +203,10 @@
                  //System.out.println("kgram " + i + " > " + statistics.get(i).count());
              }
              
+             /*Générer un fichier JSON contenant les meilleurs decks pour chaque taille spécifiée dans CARDSGRAMS.
+                Les decks sont triés par taux de victoire à l’aide du comparateur WinrateComparator.
+                Seuls les NB_DECKS (100 000) meilleurs decks sont inclus pour chaque taille.
+                Les informations des decks sont formatées en JSON pour être lisibles et réutilisables*/
              for (int i = 0; i < CARDSGRAMS.length; ++i) {
                  if (!firsta)
                      writer.write(",\n");
@@ -180,7 +219,7 @@
                      if (!first)
                          writer.write(",\n");
                      first = false;
-                     writer.write((d.toString()).replace("'", "\""));
+                     writer.write((d.toString()).replace("'", "\""));//Si ce n'est pas le premier élément (firsta), une virgule et un saut de ligne sont ajoutés.
                  }
                  writer.write("]\n}");
              }
@@ -205,6 +244,7 @@
              c1.append(tmp1.get(i));
              c2.append(tmp2.get(i));
          }
+         //Les cartes des combinaisons ont concaténées en deux chaînes c1 et c2.
          Deck d1;
          Deck d2;
      if (cmb.size() == 8) {		
@@ -223,8 +263,10 @@
                  x.players.get(1).strength - x.players.get(0).strength, x.players.get(1).utag,
                  x.players.get(1).league, x.players.get(1).ctrophies);
      }
+     //les deux objets Deck sont créés en fonction de la taille de cmb (8 cartes ou moins).
          res.add(new Tuple2<>(d1.id, d1));
-         res.add(new Tuple2<>(d2.id, d2));
+         res.add(new Tuple2<>(d2.id, d2)); 
+         //Les objets Deck sont ajoutés à la liste res sous forme de paires clé-valeur.
      }
  
  }

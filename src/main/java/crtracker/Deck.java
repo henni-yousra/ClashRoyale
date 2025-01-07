@@ -1,4 +1,4 @@
-package src.main.java.crtracker;
+package crtracker;
 
 
 import java.io.Serializable;

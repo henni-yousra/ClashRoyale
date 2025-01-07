@@ -7,5 +7,7 @@
     {"id":"1f3a4a6b", "evos":[], "towers":[], "count":254, "winrate":96.4, "nbplayers":11, "win":245, "strength":-0.0873523622047244, "league":10, "ctrophy":4634},
     {"id":"1f4a5c6b", "evos":[], "towers":[], "count":237, "winrate":95.7, "nbplayers":11, "win":227, "strength":-0.0893987341772152, "league":10, "ctrophy":5110},
     {"id":"0a0e1f6a", "evos":[], "towers":[], "count":118, "winrate":94.9, "nbplayers":11, "win":112, "strength":-0.17002118644067796, "league":10, "ctrophy":5655},
-    {"id":"1f3a4a5c", "evos":[], "towers":[], "count":473, "winrate":94.5, "nbplayers":11, "win":447, "strength":0.0066067653276955605, "league":10, "ctrophy":9647},
-    [
+    {"id":"1f3a4a5c", "evos":[], "towers":[], "count":473, "winrate":94.5, "nbplayers":11, "win":447, "strength":0.0066067653276955605, "league":10, "ctrophy":9647}
+
+    ]
+    }
