@@ -50,6 +50,7 @@ public class DeckGeneratorOptimizedV2 {
                 .filter(DeckGeneratorOptimizedV2::isBattleValid)
                 .repartition(128)
                 .persist(StorageLevel.MEMORY_AND_DISK());
+                
 
         // Traitement des combinaisons et génération des decks
         JavaPairRDD<String, Deck> rddDecks = clean.flatMapToPair(battle -> {
@@ -73,12 +74,16 @@ public class DeckGeneratorOptimizedV2 {
                 .filter(d -> isDeckValid(d, PLAYERS, BATTLES))
                 .persist(StorageLevel.MEMORY_AND_DISK());
 
-        // Récupération des meilleurs decks par taille de combinaison
+       // Récupération des meilleurs decks pour toutes les tailles de combinaison
+        List<Deck> allTopDecks = new ArrayList<>();
         for (int k : CARDSGRAMS) {
             JavaRDD<Deck> filtered = validDecks.filter(d -> d.id.length() / 2 == k);
             List<Deck> topDecks = filtered.top(NB_DECKS, new WinrateComparator());
-            saveDecksToJson(topDecks, "top_decks_" + k + ".json");
+            allTopDecks.addAll(topDecks);
         }
+
+        // Sauvegarde des meilleurs decks dans un seul fichier JSON
+        saveDecksToJson(allTopDecks, "best_deck.json");
 
         sc.close();
         System.out.println("Traitement terminé !");
