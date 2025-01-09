@@ -33,7 +33,7 @@
          if (num < 2) {
              return 1;
          }
-         return num * factorial(num - 1);
+         return num * factorial(num - 1);  //possiblité de cache?
      }
  
      // Calcul de C(n, k)= n! / (k! * (n - k)!).
@@ -43,6 +43,7 @@
          // Le résultat final
          int result = Math.round((float) numerator / denominator);
          return result;
+          //possiblité de cache?
      }
  
      /*Cette méthode génère toutes les combinaisons possibles de k éléments parmi un ensemble de n éléments (ici, les cartes dans un deck). Elle appelle la méthode generate, qui fait le travail récursivement. */
@@ -51,7 +52,7 @@
          for (int x = 0; x < n; ++x)
              elements.add(x);
  
-         ArrayList<ArrayList<Integer>> result = new ArrayList<ArrayList<Integer>>();
+         ArrayList<ArrayList<Integer>> result = new ArrayList<>();
          generate(new ArrayList<Integer>(), 0, elements, k, result);
          return result;
      }
