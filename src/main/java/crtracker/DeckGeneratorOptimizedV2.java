@@ -37,7 +37,6 @@ public class DeckGeneratorOptimizedV2 {
         final int PLAYERS = 10;
         final int BATTLES = 80;
 
-        // Configuration Spark avec Kryo Serializer
         SparkConf conf = new SparkConf()
                 .setAppName("Deck Generator Optimized V2");
         JavaSparkContext sc = new JavaSparkContext(conf);
@@ -48,7 +47,7 @@ public class DeckGeneratorOptimizedV2 {
         // Chargement et filtrage des batailles
         JavaRDD<Battle> clean = CRTools.getDistinctRawBattles(sc, CRTools.WEEKS)
                 .filter(DeckGeneratorOptimizedV2::isBattleValid)
-                .repartition(128)
+                .repartition(240)
                 .persist(StorageLevel.MEMORY_AND_DISK());
                 
 

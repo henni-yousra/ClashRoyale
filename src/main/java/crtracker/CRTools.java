@@ -29,7 +29,7 @@ public class CRTools {
     public static JavaRDD<Battle> getDistinctRawBattles(JavaSparkContext sc, int weeks) {
 
         // Chargement du fichier JSON contenant les données des batailles
-        JavaRDD<String> rdd = sc.textFile("/user/auber/data_ple/clashroyale2024/clash_huge.nljson")
+        JavaRDD<String> rdd = sc.textFile("/user/auber/data_ple/clashroyale2024/clash_big.nljson")
                                .filter((x) -> {
                                     // Filtrer les lignes vides
                                     return !x.isEmpty();
