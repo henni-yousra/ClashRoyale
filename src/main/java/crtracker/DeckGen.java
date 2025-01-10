@@ -131,8 +131,8 @@ import scala.Tuple2;
          //DeckGenerator utilise CRTools pour obtenir les données de batailles nettoyées avant de procéder à l'analyse des decks. 
 
          JavaRDD<Battle> clean = CRTools.getDistinctRawBattles(sc, CRTools.WEEKS)
-                .filter(DeckGen::isBattleValid);
-                //.repartition(240);
+                .filter(DeckGen::isBattleValid)
+                .repartition(240);
                 System.out.println("Partitions: " + clean.getNumPartitions());
 
          
