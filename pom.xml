@@ -27,7 +27,7 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>crtracker.DeckGenerator</mainClass>
+							<mainClass>crtracker.DeckGen</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

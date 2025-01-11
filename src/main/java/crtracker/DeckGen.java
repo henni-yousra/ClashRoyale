@@ -109,7 +109,8 @@ import scala.Tuple2;
       */
  
      public static void main(String[] args) {
-         final int[] CARDSGRAMS = { 4,  6, 7, 8 };
+         //final int[] CARDSGRAMS = { 4,  6, 7, 8 };
+         final int[] CARDSGRAMS = { 7, 8 };
          //final int[] CARDSGRAMS = { 1,  2, 3,  4, 3, 6, 7, 8 };
          final int[] CARDSCOMBI = { 8, 28, 56, 70, 56, 28, 8, 1 };
  
@@ -154,11 +155,12 @@ import scala.Tuple2;
  
             /* Découpage des Decks :Chaque deck est divisé en 8 sous-chaînes de 2 caractères chacune, représentant probablement des cartes individuelles.*/
              ArrayList<String> tmp1 = new ArrayList<>();
-             for (int i = 0; i < 8; ++i)
-                 tmp1.add(x.players.get(0).deck.substring(i * 2, i * 2 + 2));
              ArrayList<String> tmp2 = new ArrayList<>();
-             for (int i = 0; i < 8; ++i)
+             for (int i = 0; i < 8; ++i){
+                 tmp1.add(x.players.get(0).deck.substring(i * 2, i * 2 + 2));
                  tmp2.add(x.players.get(1).deck.substring(i * 2, i * 2 + 2));
+             }
+                 
              ArrayList<Tuple2<String, Deck>> res = new ArrayList<>();
              for (ArrayList<ArrayList<Integer>> aa : combs)
              /*Génération des Combinaisons de Cartes :Pour chaque combinaison de cartes générée précédemment (combs), 
