@@ -110,8 +110,7 @@ import scala.Tuple2;
  
      public static void main(String[] args) {
          //final int[] CARDSGRAMS = { 4,  6, 7, 8 };
-         final int[] CARDSGRAMS = { 7, 8 };
-         //final int[] CARDSGRAMS = { 1,  2, 3,  4, 3, 6, 7, 8 };
+         final int[] CARDSGRAMS = { 1,  2, 3,  4, 3, 6, 7, 8 };
          final int[] CARDSCOMBI = { 8, 28, 56, 70, 56, 28, 8, 1 };
  
          ArrayList<ArrayList<ArrayList<Integer>>> combs = new ArrayList<ArrayList<ArrayList<Integer>>>();
@@ -169,8 +168,8 @@ import scala.Tuple2;
                  for (ArrayList<Integer> cmb : aa)
                      treatCombination(x, tmp1, tmp2, res, cmb);
              return res.iterator();
-         });//cache() // persist(StorageLevel.DISK_ONLY);//Le RDD résultant (rdddecks) est mis en cache pour optimiser les performances lors des opérations suivantes.
- 
+         }).cache(); // persist(StorageLevel.DISK_ONLY);//Le RDD résultant (rdddecks) est mis en cache pour optimiser les performances lors des opérations suivantes.
+         System.out.println("rdddecks partition : " + rdddecks.getNumPartitions());
          //System.out.println("rdd decks generated : " + rdddecks.count());
  
          //procède à l'agrégation et au filtrage des statistiques :

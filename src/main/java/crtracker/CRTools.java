@@ -29,7 +29,7 @@ public class CRTools {
      */
     public static JavaRDD<Battle> getDistinctRawBattles(JavaSparkContext sc, int weeks) {
         // Charger les données JSON contenant les batailles
-        JavaRDD<String> rawBattles = sc.textFile("/user/auber/data_ple/clashroyale2024/clash_big.nljson")
+        JavaRDD<String> rawBattles = sc.textFile("/user/auber/data_ple/clashroyale2024/clash_huge.nljson")
                                        .filter(line -> !line.isEmpty()); // Ignorer les lignes vides
 
         // Transformer les lignes JSON en objets Battle avec des clés uniques
