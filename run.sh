@@ -3,3 +3,6 @@
 
 
 spark-submit --master yarn --num-executors 12 --executor-memory 2G --driver-memory 3G --class crtracker.DeckGenerator /home/yhennimansour/spark_ple/target/CRTrackerSpark-0.0.1.jar
+
+
+spark-submit --master yarn --num-executors 120 --executor-memory 2G --driver-memory 3G --class crtracker.DeckGen CRTrackerSpark-DeckGen.jar

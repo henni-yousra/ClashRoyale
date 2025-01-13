@@ -2,6 +2,7 @@ package crtracker;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.spark.api.java.JavaPairRDD;
@@ -13,91 +14,69 @@ import com.google.gson.Gson;
 import scala.Tuple2;
 
 public class CRTools {
-
-    // Définition d'une constante pour le nombre de semaines
     public static final int WEEKS = 9;
 
-    /**
-     * Récupère les batailles distinctes brutes à partir des données Clash Royale.
-     * Les données sont filtrées en fonction des dates et du nombre de semaines spécifié.
-     * Les batailles sont ensuite distinctes et nettoyées en supprimant les doublons
-     * et en triant les événements par date.
-     *
-     * @param sc    Le contexte Spark utilisé pour lire les données.
-     * @param weeks Le nombre de semaines pour lesquelles les données doivent être extraites.
-     * @return Un JavaRDD contenant des objets Battle nettoyés.
-     */
     public static JavaRDD<Battle> getDistinctRawBattles(JavaSparkContext sc, int weeks) {
-        // Charger les données JSON contenant les batailles
-        JavaRDD<String> rawBattles = sc.textFile("/user/auber/data_ple/clashroyale2024/clash_huge.nljson")
-                                       .filter(line -> !line.isEmpty()); // Ignorer les lignes vides
+        // Load data and filter out empty lines
+        JavaRDD<String> rawData = sc.textFile("./data_ple/clashroyale2024/clash_big.nljson")
+                                    .filter(line -> !line.isEmpty())
+                                    .cache(); // Cache the raw data
 
-        // Transformer les lignes JSON en objets Battle avec des clés uniques
-        JavaRDD<Battle> distinctBattles = rawBattles.mapToPair(line -> {
+        // Parse JSON and deduplicate based on a unique battle key
+        JavaPairRDD<String, Battle> distinctBattles = rawData.mapToPair(line -> {
             Gson gson = new Gson();
             Battle battle = gson.fromJson(line, Battle.class);
-            String u1 = battle.players.get(0).utag;
-            String u2 = battle.players.get(1).utag;
-
-            // Générer une clé unique basée sur la date, le round et les utilisateurs
-            String uniqueKey = battle.date + "_" + battle.round + "_"
-                    + (u1.compareTo(u2) < 0 ? u1 + u2 : u2 + u1);
+            String player1 = battle.players.get(0).utag;
+            String player2 = battle.players.get(1).utag;
+            String uniqueKey = battle.date + "_" + battle.round + "_" +
+                    (player1.compareTo(player2) < 0 ? player1 + player2 : player2 + player1);
             return new Tuple2<>(uniqueKey, battle);
-        }).distinct().values(); // Supprimer les doublons et récupérer les batailles
+        }).reduceByKey((battle1, battle2) -> battle1) // Take the first battle in the group to remove duplicates
+          .cache(); // Cache after deduplication
 
-        // Calculer la fenêtre temporelle en fonction des semaines spécifiées
-        Instant slidingWindowStart = Instant.now().minusSeconds(3600 * 24 * 7 * weeks);
-        Instant collectionStart = Instant.parse("2024-09-26T09:00:00Z");
+        // Define filtering thresholds
+        Instant slidingWindowThreshold = Instant.now().minusSeconds(3600 * 24 * 7 * weeks);
+        Instant collectionStartDate = Instant.parse("2024-09-26T09:00:00Z");
 
-        // Filtrer les batailles selon la fenêtre temporelle définie
-        JavaRDD<Battle> filteredBattles = distinctBattles.filter(battle -> {
-            Instant battleTime = Instant.parse(battle.date);
-            return battleTime.isAfter(slidingWindowStart) && battleTime.isAfter(collectionStart);
-        });
+        // Filter battles based on date constraints
+        JavaRDD<Battle> filteredBattles = distinctBattles.values().filter(battle -> {
+            Instant battleDate = Instant.parse(battle.date);
+            return battleDate.isAfter(slidingWindowThreshold) && battleDate.isAfter(collectionStartDate);
+        }).cache(); // Cache after filtering by date
 
-        // Grouper les batailles par clé unique (round, joueurs, élixir)
+        // Group battles by round and player details to identify duplicates within rounds
         JavaPairRDD<String, Iterable<Battle>> groupedBattles = filteredBattles.mapToPair(battle -> {
-            String u1 = battle.players.get(0).utag;
-            String u2 = battle.players.get(1).utag;
-            double e1 = battle.players.get(0).elixir;
-            double e2 = battle.players.get(1).elixir;
-
-            // Générer une clé pour regrouper les batailles similaires
-            String groupKey = battle.round + "_"
-                    + (u1.compareTo(u2) < 0 ? u1 + e1 + u2 + e2 : u2 + e2 + u1 + e1);
+            String player1 = battle.players.get(0).utag;
+            String player2 = battle.players.get(1).utag;
+            double elixir1 = battle.players.get(0).elixir;
+            double elixir2 = battle.players.get(1).elixir;
+            String groupKey = battle.round + "_" +
+                    (player1.compareTo(player2) < 0 ? player1 + elixir1 + player2 + elixir2 : player2 + elixir2 + player1 + elixir1);
             return new Tuple2<>(groupKey, battle);
-        }).groupByKey(); // Regrouper par clé
+        }).groupByKey()
+          .cache(); // Cache the grouped battles
 
-        // Nettoyer les batailles en triant par date et en éliminant les doublons temporels
-        JavaRDD<Battle> cleanedBattles = groupedBattles.values().flatMap(battleGroup -> {
-            List<Battle> sortedBattles = new ArrayList<>();
-            List<Battle> cleanedList = new ArrayList<>();
+        // Deduplicate battles within each group based on timestamps
+        JavaRDD<Battle> cleanedBattles = groupedBattles.values().flatMap(battles -> {
+            List<Battle> battleList = new ArrayList<>();
+            battles.forEach(battleList::add);
 
-            // Ajouter toutes les batailles à une liste temporaire
-            battleGroup.forEach(sortedBattles::add);
+            // Sort battles by date
+            battleList.sort(Comparator.comparing(battle -> Instant.parse(battle.date)));
 
-            // Trier les batailles par ordre croissant de date
-            sortedBattles.sort((b1, b2) -> Instant.parse(b1.date).compareTo(Instant.parse(b2.date)));
-
-            // Ajouter la première bataille triée à la liste nettoyée
-            cleanedList.add(sortedBattles.get(0));
-
-            // Ajouter les batailles suivantes seulement si elles sont suffisamment éloignées dans le temps
-            for (int i = 1; i < sortedBattles.size(); i++) {
-                long prevTime = Instant.parse(sortedBattles.get(i - 1).date).getEpochSecond();
-                long currTime = Instant.parse(sortedBattles.get(i).date).getEpochSecond();
-
-                // Écart minimal de 10 secondes entre deux batailles
-                if (Math.abs(currTime - prevTime) > 10) {
-                    cleanedList.add(sortedBattles.get(i));
+            // Remove duplicates with close timestamps
+            List<Battle> result = new ArrayList<>();
+            result.add(battleList.get(0)); // Add the first battle
+            for (int i = 1; i < battleList.size(); i++) {
+                long previousTime = Instant.parse(battleList.get(i - 1).date).getEpochSecond();
+                long currentTime = Instant.parse(battleList.get(i).date).getEpochSecond();
+                if (Math.abs(currentTime - previousTime) > 10) {
+                    result.add(battleList.get(i));
                 }
             }
+            return result.iterator();
+        }).cache(); // Cache the cleaned battles
 
-            // Retourner les batailles nettoyées sous forme d'itérateur
-            return cleanedList.iterator();
-        });
-
-        // Retourner les batailles nettoyées
         return cleanedBattles;
     }
 }
