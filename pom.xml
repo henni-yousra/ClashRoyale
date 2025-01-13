@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>crtracker</groupId>
 	<artifactId>CRTrackerSpark</artifactId>
-	<version>cache</version>
+	<version>hello</version>
 	<name>CRTrackerSpark</name>
 	<properties>
 		<maven.compiler.source>8</maven.compiler.source>

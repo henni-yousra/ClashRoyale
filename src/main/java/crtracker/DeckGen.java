@@ -19,7 +19,7 @@
  import java.io.Serializable;
  import java.util.ArrayList;
  import java.util.Comparator;
- import java.util.HashMap;
+
  
  import org.apache.spark.SparkConf;
  import org.apache.spark.api.java.JavaPairRDD;
@@ -67,21 +67,12 @@
              current.remove(current.size() - 1);
          }
      }
- /*
- {"date":"2024-09-26T11:29:09Z","game":"gdc","mode":"CW_Battle_1v1","round":0,"type":"riverRacePvP","winner":1,"players":[{"utag":"#YLUGLG29L","ctag":"#YCCQULJ0","trophies":9000,"ctrophies":5066,"exp":57,"league":8,"bestleague":9,"deck":"000b2f3138565a5e","evo":"0b","tower":"","strength":14.4375,"crown":1,"elixir":1.01,"touch":1,"score":100},{"utag":"#JU0VQRQU","ctag":"#YC8R0RJ0","trophies":9000,"ctrophies":5442,"exp":63,"league":9,"bestleague":9,"deck":"0d25374045596062","evo":"3740","tower":"","strength":15.25,"crown":2,"elixir":1.48,"touch":1,"score":200}],"warclan":{"day":3,"hour_seg":0,"period":"112-3","training":[false,false]}}
- {"date":"2024-09-26T11:29:08Z","game":"gdc","mode":"CW_Battle_1v1","round":0,"type":"riverRacePvP","winner":0,"players":[{"utag":"#JU0VQRQU","ctag":"#YC8R0RJ0","trophies":9000,"ctrophies":5442,"exp":63,"league":9,"bestleague":9,"deck":"0d25374045596062","evo":"3740","tower":"","strength":15.25,"crown":2,"elixir":1.48,"touch":1,"score":200},{"utag":"#YLUGLG29L","ctag":"#YCCQULJ0","trophies":9000,"ctrophies":5066,"exp":57,"league":8,"bestleague":9,"deck":"000b2f3138565a5e","evo":"0b","tower":"","strength":14.4375,"crown":1,"elixir":1.01,"touch":1,"score":100}],"warclan":{"day":3,"hour_seg":0,"period":"112-3","training":[false,false]}}
- */
-     /*
-      * Read battles from the master data sets then compute statistics for each decks
-      * subdecks can be also computes (1 2 3 4 ... ) cards by passing the argument.
-      * each time statistics about the best evolution and best towers card are
-      * provided
-      */
+ 
  
      public static void main(String[] args) {
          final int[] CARDSGRAMS = { 4,  6, 7, 8 };
          //final int[] CARDSGRAMS = { 1,  2, 3,  4, 3, 6, 7, 8 };
-         final int[] CARDSCOMBI = { 8, 28, 56, 70, 56, 28, 8, 1 };
+ 
  
          ArrayList<ArrayList<ArrayList<Integer>>> combs = new ArrayList<ArrayList<ArrayList<Integer>>>();
  
